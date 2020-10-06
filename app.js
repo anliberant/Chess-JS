@@ -1,3 +1,13 @@
+'use strict';
+const scrollToTopBtn = document.querySelector('#scrollToTopBtn');
+const rootElement = document.documentElement;
+function scrollToTop() {
+    rootElement.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+    });
+}
+scrollToTopBtn.addEventListener('click', scrollToTop);
 let map = Array(),
     map2 = Array(),
     helpers = Array(),
@@ -7,7 +17,8 @@ let map = Array(),
     pawnAttackX,
     pawnAttackY,
     fromFigure,
-    toFigure;
+    toFigure,
+    selectedFigure;
 function initMap() {
     map2 = [
         ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'],
@@ -20,15 +31,25 @@ function initMap() {
         ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
     ];
     map = [
-        ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
-        ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
-        ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
-        ['Q', 'P', ' ', ' ', ' ', ' ', 'p', 'q'],
-        ['K', 'P', ' ', ' ', ' ', ' ', 'p', 'k'],
-        ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
-        ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
-        ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
+        ['R', ' ', ' ', ' ', ' ', ' ', ' ', 'r'],
+        ['N', ' ', ' ', ' ', ' ', ' ', ' ', 'n'],
+        ['B', ' ', ' ', ' ', ' ', ' ', ' ', 'b'],
+        ['Q', ' ', ' ', ' ', ' ', ' ', ' ', 'q'],
+        ['K', ' ', ' ', ' ', ' ', ' ', ' ', 'k'],
+        ['B', ' ', ' ', ' ', ' ', ' ', ' ', 'b'],
+        ['N', ' ', ' ', ' ', ' ', ' ', ' ', 'n'],
+        ['R', ' ', ' ', ' ', ' ', ' ', ' ', 'r'],
     ];
+    // map = [
+    //     ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
+    //     ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
+    //     ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
+    //     ['Q', 'P', ' ', ' ', ' ', ' ', 'p', 'q'],
+    //     ['K', 'P', ' ', ' ', ' ', ' ', 'p', 'k'],
+    //     ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
+    //     ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
+    //     ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
+    // ];
 }
 function initHelpers() {
     helpers = [
@@ -84,7 +105,7 @@ function canMoveTo(x, y) {
 }
 function getColor(x, y) {
     let figure = map[x][y];
-    if (figure == ' ') {
+    if (figure == ' ' || figure == 'undefined' || figure == null) {
         return '';
     }
     return figure.toUpperCase() == figure ? 'white' : 'black';
@@ -97,10 +118,16 @@ function canFigureMove(sx, sy, dx, dy) {
     if (!canMoveTo(dx, dy)) {
         return false;
     }
+    if (isCorrectMove(sx, sy, dx, dy)) {
+        return false;
+    }
 
-    return isCorrectMove(sx, sy, dx, dy);
+    return !isCheck();
 }
 
+function isCheck() {
+    return false;
+}
 function isCorrectMove(sx, sy, dx, dy) {
     let figure = map[sx][sy];
     if (isKing(figure)) {
@@ -288,7 +315,9 @@ function clickCellTo(toX, toY) {
     fromFigure = map[moveFromX][moveFromY];
     toFigure = map[toX][toY];
 
-    map[toX][toY] = fromFigure;
+    let pawnFigure = lastCellPown(fromFigure, toY);
+
+    map[toX][toY] = pawnFigure != ' ' ? pawnFigure : fromFigure;
     map[moveFromX][moveFromY] = ' ';
 
     checkPawnAttack(fromFigure, toX, toY);
@@ -297,11 +326,41 @@ function clickCellTo(toX, toY) {
     markMovesFrom();
     showMap();
 }
+function lastCellPown(fromFigure, toY) {
+    if (!isPawn(fromFigure)) {
+        return ' ';
+    }
+    if (!(toY == 7 || toY == 0)) {
+        return ' ';
+    }
+    do {
+        selectedFigure = prompt('Select a figure to promote: Q R B N', 'Q');
+    } while (
+        !(
+            selectedFigure == 'Q' ||
+            selectedFigure == 'q' ||
+            selectedFigure == 'R' ||
+            selectedFigure == 'r' ||
+            selectedFigure == 'B' ||
+            selectedFigure == 'b' ||
+            selectedFigure == 'N' ||
+            selectedFigure == 'n'
+        )
+    );
+    if (moveColor == 'white') {
+        console.log('white');
+        fromFigure = selectedFigure.toUpperCase();
+    } else {
+        console.log('black');
+        fromFigure = selectedFigure.toLowerCase();
+    }
+    return fromFigure;
+}
 
 function checkPawnAttack(fromFigure, toX, toY) {
     if (isPawn(fromFigure)) {
         if (toX == pawnAttackX && toY == pawnAttackY) {
-            if (getColor(toX, toY) == 'white') {
+            if (moveColor == 'white') {
                 map[toX][toY - 1] = ' ';
             } else {
                 map[toX][Math.abs(toY) + 1] = ' ';
