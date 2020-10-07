@@ -23,12 +23,19 @@ let map = Array(),
     fromFigure,
     toFigure,
     selectedFigure,
-    lastFigure,
-    lastCellX,
-    lastCellY,
-    prevFigure,
-    prevCellX,
-    prevCellY;
+    possibleMoves,
+    lastSavedMap = [
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    ],
+    mapLoaded = false,
+    mapSaved = false;
 function initMap() {
     map2 = [
         ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'],
@@ -75,12 +82,14 @@ function initHelpers() {
 }
 function markMovesFrom() {
     initHelpers();
+    possibleMoves = 0;
     for (let sx = 0; sx <= 7; sx++) {
         for (let sy = 0; sy <= 7; sy++) {
             for (let dx = 0; dx <= 7; dx++) {
                 for (let dy = 0; dy <= 7; dy++) {
                     if (canFigureMove(sx, sy, dx, dy)) {
                         helpers[sx][sy] = 1;
+                        possibleMoves++;
                     }
                 }
             }
@@ -131,17 +140,44 @@ function canFigureMove(sx, sy, dx, dy) {
     if (!isCorrectMove(sx, sy, dx, dy)) {
         return false;
     }
-    if (!isCheck(sx, sy, dx, dy)) {
+    if (!isCheckAfterMove(sx, sy, dx, dy)) {
         return true;
     }
     return false;
     // return !isCheck(sx, sy, dx, dy);
 }
-
-function isCheck(sx, sy, dx, dy) {
+function isCheckAfterMove(sx, sy, dx, dy) {
     moveFigure(sx, sy, dx, dy, false);
-    let king = findFigure('K');
+    turnMove();
+    let check = isCheck(moveColor);
+    turnMove();
     loadFigure(sx, sy, dx, dy);
+    return check;
+}
+
+function isCheck(color) {
+    let king = findFigure(moveColor == 'white' ? 'k' : 'K');
+    for (let x = 0; x <= 7; x++) {
+        for (let y = 0; y <= 7; y++) {
+            if (getColor(x, y) == color) {
+                if (isCorrectMove(x, y, king.x, king.y)) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+function isCheckMate() {
+    if (!isCheck(moveColor)) {
+        return false;
+    }
+    return possibleMoves == 0;
+}
+
+function isStaleMate(moveColor) {
+    return !isCheck(moveColor) && possibleMoves == 0;
 }
 
 function loadFigure(sx, sy, dx, dy) {
@@ -281,7 +317,7 @@ function isCorrectPawnMove(sx, sy, dx, dy) {
         return false;
     }
     if (getColor(sx, sy) == 'white') {
-        return isCorrectSignPawnMove(sx, sy, dx, dy, +1);
+        return isCorrectSignPawnMove(sx, sy, dx, dy, 1);
     } else if (getColor(sx, sy) == 'black') {
         return isCorrectSignPawnMove(sx, sy, dx, dy, -1);
     } else {
@@ -329,10 +365,6 @@ function isPawnPassant(sx, sy, dx, dy, sign) {
     if (dy - sy != sign) {
         return false;
     }
-    // if (Math.abs(dy - sy) != sign) {
-    //     return false;
-    // }
-    //return Math.abs(dx - sy) == 1;
     return true;
 }
 
@@ -343,13 +375,11 @@ function clickCellFrom(x, y) {
     showMap();
 }
 
-function moveFigure(sx, sy, dx, dy, save) {
+function moveFigure(sx, sy, dx, dy) {
     if (!onMap(dx, dy)) {
         return false;
     }
-    if (save) {
-        saveLastMove(sx, sy, dx, dy);
-    }
+
     fromFigure = map[sx][sy];
     toFigure = map[dx][dy];
 
@@ -357,36 +387,23 @@ function moveFigure(sx, sy, dx, dy, save) {
     map[sx][sy] = ' ';
 }
 
-function saveLastMove(sx, sy, dx, dy) {
-    lastFigure = map[sx][sy];
-    lastCellX = sx;
-    lastCellY = sy;
-    prevFigure = map[dx][dy];
-    prevCellX = dx;
-    prevCellY = dy;
-}
-
 function backFigure() {
-    if (!lastFigure) {
-        if (lastFigure == '') {
-            infoBlock.innerHTML = '<h3>You can back only once</h3>';
-        } else {
-            infoBlock.innerHTML = '<h3>This is a first turn</h3>';
-        }
-        setTimeout(function () {
-            infoBlock.innerHTML = '';
-        }, 3000);
-    } else {
-        map[lastCellX][lastCellY] = lastFigure;
-        map[prevCellX][prevCellY] = prevFigure;
-        lastFigure = '';
-        turnMove();
-        markMovesFrom();
-        showMap();
+    if (!mapSaved) {
+        infoBlock.innerHTML = '<h3>This is a first turn</h3>';
+    }
+    if (mapLoaded) {
+        infoBlock.innerHTML = '<h3>You can back only once</h3>';
+    }
+    setTimeout(() => {
+        infoBlock.innerHTML = '';
+    }, 3000);
+    if (mapSaved && !mapLoaded) {
+        loadSavedMap();
     }
 }
 
 function clickCellTo(toX, toY) {
+    saveMap();
     moveFigure(moveFromX, moveFromY, toX, toY, true);
     lastCellPown(fromFigure, toX, toY);
 
@@ -395,6 +412,7 @@ function clickCellTo(toX, toY) {
     turnMove();
     markMovesFrom();
     showMap();
+    mapLoaded = false;
 }
 function lastCellPown(fromFigure, toX, toY) {
     if (!isPawn(fromFigure)) {
@@ -480,6 +498,24 @@ function figureToHtml(figure) {
     }
 }
 
+function showInfo() {
+    let html = 'Turns: ' + moveColor + ' ';
+    turnMove();
+    if (isStaleMate(moveColor)) {
+        html = '';
+        html += '<span class="warning">STELEMATE</span>';
+    }
+    if (isCheck(moveColor)) {
+        html += '<span class="warning">Check</span>';
+    }
+    if (isCheckMate(moveColor)) {
+        html = '';
+        html += '<span class="warning">CHECKMATE</span>';
+    }
+    turnMove();
+    document.querySelector('#turn').innerHTML = html;
+}
+
 function showMap() {
     let color,
         html = '<table>';
@@ -510,6 +546,7 @@ function showMap() {
             }
             html += '</tr>';
         }
+        showInfo();
     }
     document.querySelector('#board').innerHTML = html;
     document.querySelectorAll('td').forEach((item) => {
@@ -536,6 +573,26 @@ function showMap() {
             }
         });
     });
+}
+
+function saveMap() {
+    for (let x = 0; x <= 7; x++) {
+        for (let y = 0; y <= 7; y++) {
+            lastSavedMap[x][y] = map[x][y];
+        }
+    }
+    mapSaved = true;
+}
+function loadSavedMap() {
+    for (let x = 0; x <= 7; x++) {
+        for (let y = 0; y <= 7; y++) {
+            map[x][y] = lastSavedMap[x][y];
+        }
+    }
+    mapLoaded = true;
+    turnMove();
+    markMovesFrom();
+    showMap();
 }
 function start() {
     moveColor = 'white';

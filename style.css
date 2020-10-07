@@ -16,19 +16,25 @@ td {
 
 span {
     font-size: 40px;
-    transform: scale(.5, 1);
+    transform: scale(.8, 1);
     color: black;
 }
 
 #board,
 #info,
-#buttons {
+#buttons,
+#turn {
     display: flex;
     justify-content: center;
 }
 
 #info {
     color: red;
+    font-size: 2rem;
+}
+
+#turn {
+    color: blue;
     font-size: 2rem;
 }
 
@@ -40,6 +46,14 @@ span {
 .symbol {
     font-size: 15px;
     width: 25px;
+}
+
+.warning {
+    font-family: "Helvetica",
+        "Arial",
+        sans-serif;
+    color: red;
+    font-size: 2.0rem;
 }
 
 footer {
