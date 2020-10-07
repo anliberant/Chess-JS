@@ -1,8 +1,12 @@
 'use strict';
-const scrollToTopBtn = document.querySelector('#scrollToTopBtn');
-const rootElement = document.documentElement;
+const scrollToTopBtn = document.querySelector('#scrollToTopBtn'),
+    backBtn = document.querySelector('#back_figure'),
+    infoBlock = document.querySelector('#info'),
+    newBtn = document.querySelector('#new_game');
+backBtn.addEventListener('click', backFigure);
+newBtn.addEventListener('click', start);
 function scrollToTop() {
-    rootElement.scrollTo({
+    document.documentElement.scrollTo({
         top: 0,
         behavior: 'smooth',
     });
@@ -18,7 +22,13 @@ let map = Array(),
     pawnAttackY,
     fromFigure,
     toFigure,
-    selectedFigure;
+    selectedFigure,
+    lastFigure,
+    lastCellX,
+    lastCellY,
+    prevFigure,
+    prevCellX,
+    prevCellY;
 function initMap() {
     map2 = [
         ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'],
@@ -30,26 +40,26 @@ function initMap() {
         ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
         ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
     ];
-    map = [
-        ['R', ' ', ' ', ' ', ' ', ' ', ' ', 'r'],
-        ['N', ' ', ' ', ' ', ' ', ' ', ' ', 'n'],
-        ['B', ' ', ' ', ' ', ' ', ' ', ' ', 'b'],
-        ['Q', ' ', ' ', ' ', ' ', ' ', ' ', 'q'],
-        ['K', ' ', ' ', ' ', ' ', ' ', ' ', 'k'],
-        ['B', ' ', ' ', ' ', ' ', ' ', ' ', 'b'],
-        ['N', ' ', ' ', ' ', ' ', ' ', ' ', 'n'],
-        ['R', ' ', ' ', ' ', ' ', ' ', ' ', 'r'],
-    ];
     // map = [
-    //     ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
-    //     ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
-    //     ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
-    //     ['Q', 'P', ' ', ' ', ' ', ' ', 'p', 'q'],
-    //     ['K', 'P', ' ', ' ', ' ', ' ', 'p', 'k'],
-    //     ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
-    //     ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
-    //     ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
+    //     ['R', ' ', ' ', ' ', ' ', ' ', ' ', 'r'],
+    //     ['N', ' ', ' ', ' ', ' ', ' ', ' ', 'n'],
+    //     ['B', ' ', ' ', ' ', ' ', ' ', ' ', 'b'],
+    //     ['Q', ' ', ' ', ' ', ' ', ' ', ' ', 'q'],
+    //     ['K', ' ', ' ', ' ', ' ', ' ', ' ', 'k'],
+    //     ['B', ' ', ' ', ' ', ' ', ' ', ' ', 'b'],
+    //     ['N', ' ', ' ', ' ', ' ', ' ', ' ', 'n'],
+    //     ['R', ' ', ' ', ' ', ' ', ' ', ' ', 'r'],
     // ];
+    map = [
+        ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
+        ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
+        ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
+        ['Q', 'P', ' ', ' ', ' ', ' ', 'p', 'q'],
+        ['K', 'P', ' ', ' ', ' ', ' ', 'p', 'k'],
+        ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
+        ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
+        ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
+    ];
 }
 function initHelpers() {
     helpers = [
@@ -118,16 +128,38 @@ function canFigureMove(sx, sy, dx, dy) {
     if (!canMoveTo(dx, dy)) {
         return false;
     }
-    if (isCorrectMove(sx, sy, dx, dy)) {
+    if (!isCorrectMove(sx, sy, dx, dy)) {
         return false;
     }
-
-    return !isCheck();
-}
-
-function isCheck() {
+    if (!isCheck(sx, sy, dx, dy)) {
+        return true;
+    }
     return false;
+    // return !isCheck(sx, sy, dx, dy);
 }
+
+function isCheck(sx, sy, dx, dy) {
+    moveFigure(sx, sy, dx, dy, false);
+    let king = findFigure('K');
+    loadFigure(sx, sy, dx, dy);
+}
+
+function loadFigure(sx, sy, dx, dy) {
+    map[sx][sy] = fromFigure;
+    map[dx][dy] = toFigure;
+}
+
+function findFigure(figure) {
+    for (let x = 0; x <= 7; x++) {
+        for (let y = 0; y <= 7; y++) {
+            if (map[x][y] == figure) {
+                return { x: x, y: y };
+            }
+        }
+    }
+    return { x: -1, y: -1 };
+}
+
 function isCorrectMove(sx, sy, dx, dy) {
     let figure = map[sx][sy];
     if (isKing(figure)) {
@@ -311,14 +343,52 @@ function clickCellFrom(x, y) {
     showMap();
 }
 
+function moveFigure(sx, sy, dx, dy, save) {
+    if (!onMap(dx, dy)) {
+        return false;
+    }
+    if (save) {
+        saveLastMove(sx, sy, dx, dy);
+    }
+    fromFigure = map[sx][sy];
+    toFigure = map[dx][dy];
+
+    map[dx][dy] = fromFigure;
+    map[sx][sy] = ' ';
+}
+
+function saveLastMove(sx, sy, dx, dy) {
+    lastFigure = map[sx][sy];
+    lastCellX = sx;
+    lastCellY = sy;
+    prevFigure = map[dx][dy];
+    prevCellX = dx;
+    prevCellY = dy;
+}
+
+function backFigure() {
+    if (!lastFigure) {
+        if (lastFigure == '') {
+            infoBlock.innerHTML = '<h3>You can back only once</h3>';
+        } else {
+            infoBlock.innerHTML = '<h3>This is a first turn</h3>';
+        }
+        setTimeout(function () {
+            infoBlock.innerHTML = '';
+        }, 3000);
+    } else {
+        map[lastCellX][lastCellY] = lastFigure;
+        map[prevCellX][prevCellY] = prevFigure;
+        lastFigure = '';
+        turnMove();
+        markMovesFrom();
+        showMap();
+    }
+}
+
 function clickCellTo(toX, toY) {
-    fromFigure = map[moveFromX][moveFromY];
-    toFigure = map[toX][toY];
-
-    let pawnFigure = lastCellPown(fromFigure, toY);
-
-    map[toX][toY] = pawnFigure != ' ' ? pawnFigure : fromFigure;
-    map[moveFromX][moveFromY] = ' ';
+    moveFigure(moveFromX, moveFromY, toX, toY, true);
+    lastCellPown(fromFigure, toX, toY);
 
     checkPawnAttack(fromFigure, toX, toY);
 
@@ -326,12 +396,12 @@ function clickCellTo(toX, toY) {
     markMovesFrom();
     showMap();
 }
-function lastCellPown(fromFigure, toY) {
+function lastCellPown(fromFigure, toX, toY) {
     if (!isPawn(fromFigure)) {
-        return ' ';
+        return;
     }
     if (!(toY == 7 || toY == 0)) {
-        return ' ';
+        return;
     }
     do {
         selectedFigure = prompt('Select a figure to promote: Q R B N', 'Q');
@@ -348,13 +418,12 @@ function lastCellPown(fromFigure, toY) {
         )
     );
     if (moveColor == 'white') {
-        console.log('white');
-        fromFigure = selectedFigure.toUpperCase();
+        selectedFigure = selectedFigure.toUpperCase();
     } else {
-        console.log('black');
-        fromFigure = selectedFigure.toLowerCase();
+        selectedFigure = selectedFigure.toLowerCase();
     }
-    return fromFigure;
+    map[toX][toY] = selectedFigure;
+    // return fromFigure;
 }
 
 function checkPawnAttack(fromFigure, toX, toY) {
@@ -442,7 +511,6 @@ function showMap() {
             html += '</tr>';
         }
     }
-
     document.querySelector('#board').innerHTML = html;
     document.querySelectorAll('td').forEach((item) => {
         item.addEventListener('click', (e) => {
@@ -470,6 +538,7 @@ function showMap() {
     });
 }
 function start() {
+    moveColor = 'white';
     initMap();
     markMovesFrom();
     showMap();
