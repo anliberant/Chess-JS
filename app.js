@@ -24,6 +24,13 @@ let map = Array(),
     toFigure,
     selectedFigure,
     possibleMoves,
+    savePawnFigure = ' ',
+    savePawnX = -1,
+    savePawnY = -1,
+    canWhiteCastleLeft,
+    canWhiteCastleRight,
+    canBlackCastleLeft,
+    canBlackCastleRight,
     lastSavedMap = [
         [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
         [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
@@ -47,26 +54,30 @@ function initMap() {
         ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
         ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
     ];
-    // map = [
-    //     ['R', ' ', ' ', ' ', ' ', ' ', ' ', 'r'],
-    //     ['N', ' ', ' ', ' ', ' ', ' ', ' ', 'n'],
-    //     ['B', ' ', ' ', ' ', ' ', ' ', ' ', 'b'],
-    //     ['Q', ' ', ' ', ' ', ' ', ' ', ' ', 'q'],
-    //     ['K', ' ', ' ', ' ', ' ', ' ', ' ', 'k'],
-    //     ['B', ' ', ' ', ' ', ' ', ' ', ' ', 'b'],
-    //     ['N', ' ', ' ', ' ', ' ', ' ', ' ', 'n'],
-    //     ['R', ' ', ' ', ' ', ' ', ' ', ' ', 'r'],
-    // ];
     map = [
-        ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
-        ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
-        ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
-        ['Q', 'P', ' ', ' ', ' ', ' ', 'p', 'q'],
-        ['K', 'P', ' ', ' ', ' ', ' ', 'p', 'k'],
-        ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
-        ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
-        ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
+        ['R', ' ', ' ', ' ', ' ', ' ', ' ', 'r'],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', 'n'],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', 'b'],
+        ['Q', ' ', ' ', ' ', ' ', ' ', ' ', 'q'],
+        ['K', ' ', ' ', ' ', ' ', ' ', ' ', 'k'],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', 'b'],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', 'n'],
+        ['R', ' ', ' ', ' ', ' ', ' ', ' ', 'r'],
     ];
+    canWhiteCastleLeft = true;
+    canWhiteCastleRight = true;
+    canBlackCastleLeft = true;
+    canBlackCastleRight = true;
+    // map = [
+    //     ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
+    //     ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
+    //     ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
+    //     ['Q', 'P', ' ', ' ', ' ', ' ', 'p', 'q'],
+    //     ['K', 'P', ' ', ' ', ' ', ' ', 'p', 'k'],
+    //     ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
+    //     ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
+    //     ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
+    // ];
 }
 function initHelpers() {
     helpers = [
@@ -147,7 +158,7 @@ function canFigureMove(sx, sy, dx, dy) {
     // return !isCheck(sx, sy, dx, dy);
 }
 function isCheckAfterMove(sx, sy, dx, dy) {
-    moveFigure(sx, sy, dx, dy, false);
+    moveFigure(sx, sy, dx, dy);
     turnMove();
     let check = isCheck(moveColor);
     turnMove();
@@ -183,6 +194,7 @@ function isStaleMate(moveColor) {
 function loadFigure(sx, sy, dx, dy) {
     map[sx][sy] = fromFigure;
     map[dx][dy] = toFigure;
+    backPawnAttack();
 }
 
 function findFigure(figure) {
@@ -385,6 +397,7 @@ function moveFigure(sx, sy, dx, dy) {
 
     map[dx][dy] = fromFigure;
     map[sx][sy] = ' ';
+    movePawnAttack(fromFigure, dx, dy);
 }
 
 function backFigure() {
@@ -404,15 +417,39 @@ function backFigure() {
 
 function clickCellTo(toX, toY) {
     saveMap();
-    moveFigure(moveFromX, moveFromY, toX, toY, true);
+    moveFigure(moveFromX, moveFromY, toX, toY);
     lastCellPown(fromFigure, toX, toY);
 
     checkPawnAttack(fromFigure, toX, toY);
+    updateCastleFlags(moveFromX, moveFromY, toX, toY);
 
     turnMove();
     markMovesFrom();
     showMap();
     mapLoaded = false;
+}
+function updateCastleFlags(moveFromX, moveFromY, toX, toY) {
+    let tmpFigure = map[toX][toY];
+    if (tmpFigure == 'K') {
+        canWhiteCastleLeft = false;
+        canWhiteCastleRight = false;
+    }
+    if (tmpFigure == 'k') {
+        canBlackCastleLeft = false;
+        canBlackCastleRight = false;
+    }
+    if (tmpFigure == 'R' && moveFromX == 0 && moveFromY == 0) {
+        canWhiteCastleLeft = false;
+    }
+    if (tmpFigure == 'R' && moveFromX == 7 && moveFromY == 0) {
+        canWhiteCastleRight = false;
+    }
+    if (tmpFigure == 'r' && moveFromX == 0 && moveFromY == 7) {
+        canBlackCastleLeft = false;
+    }
+    if (tmpFigure == 'r' && moveFromX == 7 && moveFromY == 7) {
+        canBlackCastleRight = false;
+    }
 }
 function lastCellPown(fromFigure, toX, toY) {
     if (!isPawn(fromFigure)) {
@@ -444,18 +481,32 @@ function lastCellPown(fromFigure, toX, toY) {
     // return fromFigure;
 }
 
-function checkPawnAttack(fromFigure, toX, toY) {
+function movePawnAttack(fromFigure, toX, toY) {
     if (isPawn(fromFigure)) {
         if (toX == pawnAttackX && toY == pawnAttackY) {
-            if (moveColor == 'white') {
-                map[toX][toY - 1] = ' ';
-            } else {
-                map[toX][Math.abs(toY) + 1] = ' ';
-            }
+            let y =
+                moveColor == 'white' ? Math.abs(toY) - 1 : Math.abs(toY) + 1;
+            savePawnFigure = map[toX][y];
+            savePawnX = toX;
+            savePawnY = y;
+            map[toX][y] = ' ';
         }
     }
+}
+function backPawnAttack() {
+    if (loadSavedMap) {
+        return;
+    }
+    if (savePawnX != -1 && savePawnY != -1) {
+        map[savePawnX][savePawnY] = savePawnFigure;
+    }
+}
+function checkPawnAttack(fromFigure, toX, toY) {
     pawnAttackX = -1;
     pawnAttackY = -1;
+    savePawnFigure = ' ';
+    savePawnX = -1;
+    savePawnY = -1;
     if (isPawn(fromFigure)) {
         if (Math.abs(toY - moveFromY)) {
             pawnAttackX = moveFromX;
@@ -561,7 +612,6 @@ function showMap() {
                 let x = td.id[0],
                     y = td.id[1];
                 //  helpers = helpers.reverse();
-
                 if (helpers[x][y] == '1') {
                     clickCellFrom(x, y);
                 }
@@ -589,6 +639,7 @@ function loadSavedMap() {
             map[x][y] = lastSavedMap[x][y];
         }
     }
+
     mapLoaded = true;
     turnMove();
     markMovesFrom();
