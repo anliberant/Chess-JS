@@ -54,30 +54,20 @@ function initMap() {
         ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
         ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
     ];
-    map = [
-        ['R', ' ', ' ', ' ', ' ', ' ', ' ', 'r'],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', 'n'],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', 'b'],
-        ['Q', ' ', ' ', ' ', ' ', ' ', ' ', 'q'],
-        ['K', ' ', ' ', ' ', ' ', ' ', ' ', 'k'],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', 'b'],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', 'n'],
-        ['R', ' ', ' ', ' ', ' ', ' ', ' ', 'r'],
-    ];
     canWhiteCastleLeft = true;
     canWhiteCastleRight = true;
     canBlackCastleLeft = true;
     canBlackCastleRight = true;
-    // map = [
-    //     ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
-    //     ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
-    //     ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
-    //     ['Q', 'P', ' ', ' ', ' ', ' ', 'p', 'q'],
-    //     ['K', 'P', ' ', ' ', ' ', ' ', 'p', 'k'],
-    //     ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
-    //     ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
-    //     ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
-    // ];
+    map = [
+        ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
+        ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
+        ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
+        ['Q', 'P', ' ', ' ', ' ', ' ', 'p', 'q'],
+        ['K', 'P', ' ', ' ', ' ', ' ', 'p', 'k'],
+        ['B', 'P', ' ', ' ', ' ', ' ', 'p', 'b'],
+        ['N', 'P', ' ', ' ', ' ', ' ', 'p', 'n'],
+        ['R', 'P', ' ', ' ', ' ', ' ', 'p', 'r'],
+    ];
 }
 function initHelpers() {
     helpers = [
@@ -253,8 +243,127 @@ function isCorrectKingMove(sx, sy, dx, dy) {
     if (Math.abs(dx - sx) <= 1 && Math.abs(dy - sy) <= 1) {
         return true;
     }
+    return canCastle(sx, sy, dx, dy);
+}
+function canCastle(sx, sy, dx, dy) {
+    if (dy != sy) {
+        return false;
+    }
+    if (Math.abs(dx - sx) != 2) {
+        return false;
+    }
+    turnMove();
+    let checked = isCheck(moveColor);
+    turnMove();
+    if (checked) {
+        return false;
+    }
+
+    if (map[sx][sy] == 'K' && sx == 4 && sy == 0 && dx == 6 && dy == 0) {
+        return canWhiteClRight();
+    }
+    if (map[sx][sy] == 'K' && sx == 4 && sy == 0 && dx == 2 && dy == 0) {
+        return canWhiteClLeft();
+    }
+    if (map[sx][sy] == 'k' && sx == 4 && sy == 7 && dx == 6 && dy == 7) {
+        return canBlackClRight();
+    }
+    if (map[sx][sy] == 'k' && sx == 4 && sy == 7 && dx == 2 && dy == 7) {
+        return canBlackClLeft();
+    }
     return false;
 }
+function canWhiteClRight() {
+    if (!canWhiteCastleRight) {
+        return false;
+    }
+    if (isCheck(moveColor)) {
+        return false;
+    }
+    if (isCheckAfterMove(4, 0, 5, 0)) {
+        return false;
+    }
+    if (!isEmpty(5, 0)) {
+        return false;
+    }
+    if (!isEmpty(6, 0)) {
+        return false;
+    }
+    if (map[7][0] != 'R') {
+        return false;
+    }
+    return true;
+}
+function canWhiteClLeft() {
+    if (!canWhiteCastleLeft) {
+        return false;
+    }
+    if (isCheck(moveColor)) {
+        return false;
+    }
+    if (isCheckAfterMove(4, 0, 3, 0)) {
+        return false;
+    }
+    if (!isEmpty(3, 0)) {
+        return false;
+    }
+    if (!isEmpty(2, 0)) {
+        return false;
+    }
+    if (!isEmpty(1, 0)) {
+        return false;
+    }
+    if (map[0][0] != 'R') {
+        return false;
+    }
+    return true;
+}
+function canBlackClRight() {
+    if (!canBlackCastleRight) {
+        return false;
+    }
+    if (isCheck('black')) {
+        return false;
+    }
+    if (isCheckAfterMove(4, 7, 5, 7)) {
+        return false;
+    }
+    if (!isEmpty(5, 7)) {
+        return false;
+    }
+    if (!isEmpty(6, 7)) {
+        return false;
+    }
+    if (map[7][7] != 'r') {
+        return false;
+    }
+    return true;
+}
+function canBlackClLeft() {
+    if (!canBlackCastleLeft) {
+        return false;
+    }
+    if (isCheck(moveColor)) {
+        return false;
+    }
+    if (isCheckAfterMove(7, 0, 7, 0)) {
+        return false;
+    }
+    if (!isEmpty(3, 7)) {
+        return false;
+    }
+    if (!isEmpty(2, 7)) {
+        return false;
+    }
+    if (!isEmpty(1, 7)) {
+        return false;
+    }
+    if (map[0][7] != 'r') {
+        return false;
+    }
+    return true;
+}
+
 function isCorrectQueenMove(sx, sy, dx, dy) {
     let deltaX = Math.sign(dx - sx);
     let deltaY = Math.sign(dy - sy);
@@ -422,7 +531,7 @@ function clickCellTo(toX, toY) {
 
     checkPawnAttack(fromFigure, toX, toY);
     updateCastleFlags(moveFromX, moveFromY, toX, toY);
-
+    moveCastleRook(moveFromX, moveFromY, toX, toY);
     turnMove();
     markMovesFrom();
     showMap();
@@ -449,6 +558,30 @@ function updateCastleFlags(moveFromX, moveFromY, toX, toY) {
     }
     if (tmpFigure == 'r' && moveFromX == 7 && moveFromY == 7) {
         canBlackCastleRight = false;
+    }
+}
+function moveCastleRook(moveFromX, moveFromY, toX, toY) {
+    if (!isKing(map[toX][toY])) {
+        return false;
+    }
+    if (Math.abs(toX - moveFromX) < 2) {
+        return false;
+    }
+    if (toX == 6 && toY == 0) {
+        map[7][0] = ' ';
+        map[5][0] = 'R';
+    }
+    if (toX == 2 && toY == 0) {
+        map[0][0] = ' ';
+        map[3][0] = 'R';
+    }
+    if (toX == 6 && toY == 7) {
+        map[7][7] = ' ';
+        map[5][7] = 'r';
+    }
+    if (toX == 2 && toY == 7) {
+        map[0][7] = ' ';
+        map[3][7] = 'r';
     }
 }
 function lastCellPown(fromFigure, toX, toY) {
